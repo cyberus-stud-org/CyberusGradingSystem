@@ -1,6 +1,7 @@
 from flask import Flask, request, json
 
 from selenium import webdriver
+import os
 
 import thm
 
@@ -16,8 +17,8 @@ app = Flask(__name__)
 
 @app.route('/')
 def root():
-    return \
-        '''<!DOCTYPE html>
+    return '''
+<!DOCTYPE html>
     <html>
         <head>
             <meta charset="utf-8">
@@ -31,15 +32,15 @@ def root():
             </p>
         </body>
     </html>
-        '''
+    '''
 
 
-# check if the user solved the challenge
 @app.route('/CheckTHM', methods=['GET', 'POST'])
 def check():
     profile = thm.THMProfile(driver, 'WEx90')
     return '<br>'.join(profile.get_all_completed_rooms())
+    # return 'Hi', 200
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)
