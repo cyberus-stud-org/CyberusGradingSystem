@@ -1,8 +1,8 @@
 import requests
-
+import config
 
 def check_cybertalents(username, roomname):
-    response = requests.get(f'https://cybertalents.com/members/{username}/profile')
+    response = requests.get(f'{CYBERTALENTS_PROFILE_URL}{username}/profile')
 
     if roomname in response.text:
         return True
