@@ -1,4 +1,5 @@
 from selenium import webdriver
+import selenium.common.exceptions
 from bs4 import BeautifulSoup
 from time import sleep
 import os
@@ -18,41 +19,49 @@ def start_driver():
 
 class THMProfile:
 
-    requests_blocked = None
-
     def __init__(self, driver, username):
 
         # set the driver
         self.driver = driver
-        # go to THM user's profile
-        self.driver.get(config.THM_PROFILE_URL + username)
+        # check if the browser is open
+        try:
+            # go to THM user's profile
+            self.driver.get(config.THM_PROFILE_URL + username)
+        except selenium.common.exceptions.WebDriverException:
+            self.driver = start_driver()
+            sleep(1)
+            self.driver.get(config.THM_PROFILE_URL + username)
         # check if THM blocked our requests
-        self.requests_blocked = self.check_if_requests_blocked()
+        requests_blocked = self.check_if_requests_blocked()
         # deal with the block
         time_to_sleep = 2
-        while self.requests_blocked:
+        while requests_blocked:
             sleep(time_to_sleep)
             self.driver.close()
             sleep(time_to_sleep)
             self.driver = start_driver()
             self.driver.get(config.THM_PROFILE_URL + username)
             time_to_sleep += 1
-            self.requests_blocked = self.check_if_requests_blocked()
+            requests_blocked = self.check_if_requests_blocked()
 
-        # get number of completed rooms
-        try:
-            number_of_completed_rooms = self.get_number_of_completed_rooms()
-        except Exception:
-            sleep(3)
-            number_of_completed_rooms = self.get_number_of_completed_rooms()
+        # check if username exists
+        self.username_exists = self.check_username_existence()
 
-        # get number of current shown rooms
-        number_of_current_shown_rooms = self.get_number_of_current_shown_rooms()
+        if self.username_exists:
+            # get number of completed rooms
+            try:
+                number_of_completed_rooms = self.get_number_of_completed_rooms()
+            except Exception:
+                sleep(3)
+                number_of_completed_rooms = self.get_number_of_completed_rooms()
 
-        # show more rooms while the number of current shown rooms is less than the actual completed rooms
-        while number_of_current_shown_rooms < number_of_completed_rooms:
-            self.show_more_rooms()
+            # get number of current shown rooms
             number_of_current_shown_rooms = self.get_number_of_current_shown_rooms()
+
+            # show more rooms while the number of current shown rooms is less than the actual completed rooms
+            while number_of_current_shown_rooms < number_of_completed_rooms:
+                self.show_more_rooms()
+                number_of_current_shown_rooms = self.get_number_of_current_shown_rooms()
 
     def get_number_of_completed_rooms(self):
         """:returns the number of completed rooms"""
@@ -84,6 +93,12 @@ class THMProfile:
 
     def check_if_requests_blocked(self):
         """:returns True if THM blocked our requests"""
-        if BeautifulSoup(self.driver.page_source, features='html.parser').find('div', {'id': 'rooms-completed'}) is None:
+        if 'What can I do to prevent this in the future?' in self.driver.page_source:
             return True
         return False
+
+    def check_username_existence(self):
+        """:returns True if username exists, otherwise if will return False"""
+        if 'Uh-oh, this page has been lost in the matrix.' in self.driver.page_source:
+            return False
+        return True
