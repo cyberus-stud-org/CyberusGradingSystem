@@ -1,10 +1,24 @@
+from selenium import webdriver
 from bs4 import BeautifulSoup
 from time import sleep
+import os
 
 import config
 
 
+def start_driver():
+    # starts chrome driver with specific options
+    chrome_options = webdriver.ChromeOptions()
+    chrome_options.binary_location = os.environ.get("GOOGLE_CHROME_BIN")
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--no-sandbox")
+    return webdriver.Chrome()
+
+
 class THMProfile:
+
+    requests_blocked = None
 
     def __init__(self, driver, username):
 
@@ -12,13 +26,25 @@ class THMProfile:
         self.driver = driver
         # go to THM user's profile
         self.driver.get(config.THM_PROFILE_URL + username)
+        # check if THM blocked our requests
+        self.requests_blocked = self.check_if_requests_blocked()
+        # deal with the block
+        time_to_sleep = 2
+        while self.requests_blocked:
+            sleep(time_to_sleep)
+            self.driver.close()
+            sleep(time_to_sleep)
+            self.driver = start_driver()
+            self.driver.get(config.THM_PROFILE_URL + username)
+            time_to_sleep += 1
+            self.requests_blocked = self.check_if_requests_blocked()
 
         # get number of completed rooms
         try:
-            number_of_completed_rooms = self.get_number_of_completed_rooms(self.driver.page_source)
+            number_of_completed_rooms = self.get_number_of_completed_rooms()
         except Exception:
             sleep(3)
-            number_of_completed_rooms = self.get_number_of_completed_rooms(self.driver.page_source)
+            number_of_completed_rooms = self.get_number_of_completed_rooms()
 
         # get number of current shown rooms
         number_of_current_shown_rooms = self.get_number_of_current_shown_rooms()
@@ -28,9 +54,9 @@ class THMProfile:
             self.show_more_rooms()
             number_of_current_shown_rooms = self.get_number_of_current_shown_rooms()
 
-    def get_number_of_completed_rooms(self, page_source):
+    def get_number_of_completed_rooms(self):
         """:returns the number of completed rooms"""
-        return int(BeautifulSoup(page_source, features='html.parser').find('div', {'id': 'rooms-completed'}).text)
+        return int(BeautifulSoup(self.driver.page_source, features='html.parser').find('div', {'id': 'rooms-completed'}).text)
 
     def get_number_of_current_shown_rooms(self):
         """:returns the number of currently shown rooms"""
@@ -52,6 +78,12 @@ class THMProfile:
         # loops through all completed rooms
         for room in all_completed_rooms:
             # check if the room name matches the wanted room
-            if room_name == room or room_name in room:
+            if room_name == room.strip() or room_name in room.strip():
                 return True
+        return False
+
+    def check_if_requests_blocked(self):
+        """:returns True if THM blocked our requests"""
+        if BeautifulSoup(self.driver.page_source, features='html.parser').find('div', {'id': 'rooms-completed'}) is None:
+            return True
         return False
