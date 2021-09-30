@@ -1,17 +1,11 @@
 from flask import Flask, request, json
 
-from selenium import webdriver
-import os
+import requests
 
 import thm
+import config
 
-chrome_options = webdriver.ChromeOptions()
-chrome_options.binary_location = os.environ.get("GOOGLE_CHROME_BIN")
-chrome_options.add_argument("--headless")
-chrome_options.add_argument("--disable-dev-shm-usage")
-chrome_options.add_argument("--no-sandbox")
-driver = webdriver.Chrome()
-
+driver = thm.start_driver()
 app = Flask(__name__)
 
 
@@ -36,11 +30,48 @@ def root():
 
 
 @app.route('/CheckTHM', methods=['GET', 'POST'])
-def check():
-    profile = thm.THMProfile(driver, 'WEx90')
-    return '<br>'.join(profile.get_all_completed_rooms())
-    # return 'Hi', 200
+def check_thm():
+
+    global driver
+
+    try:
+        json_data = request.json
+        json_data['username']
+        json_data['room']
+    except Exception:
+        return 'Error: Invalid JSON', 400
+
+    if len(json_data['username']) > 20 or len(json_data['room']) > 30:
+        return 'Error: Invalid Values', 400
+
+    profile = thm.THMProfile(driver, json_data['username'])
+    driver = profile.driver
+
+    if profile.username_exists:
+        return str(profile.check_if_room_completed(json_data['room'])), 200
+    else:
+        return 'Error: Username doesn\'t exist', 400
+
+
+@app.route('/CheckCyberTalents', methods=['GET', 'POST'])
+def check_cybertalents():
+
+    try:
+        json_data = request.json
+        json_data['username']
+        json_data['challenge']
+    except Exception:
+        return 'Error: Invalid JSON', 200
+
+    if len(json_data['username']) > 20 or len(json_data['challenge']) > 30:
+        return 'Error: Invalid Values'
+
+    response = requests.get(f'{config.CYBERTALENTS_PROFILE_URL}{json_data["username"]}/profile')
+
+    if json_data["challenge"] in response.text:
+        return 'True'
+    return 'False'
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()
