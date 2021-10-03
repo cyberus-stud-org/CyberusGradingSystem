@@ -6,7 +6,7 @@ class Queuedb:
 
     def __init__(self, DB_FILE_NAME):
         # connect to the db file
-        self.conn = sqlite3.connect(DB_FILE_NAME)
+        self.conn = sqlite3.connect(DB_FILE_NAME, check_same_thread=False)
         self.TABLE_NAME = config.TABLE_NAME
         self.USERNAME_COL_NAME = config.USERNAME_COL_NAME
         self.CHALLENGE_COL_NAME = config.CHALLENGE_COL_NAME
@@ -60,15 +60,3 @@ class Queuedb:
     def close_db_connection(self):
         """Closes db connection"""
         self.conn.close()
-
-
-if __name__ == '__main__':
-
-    queue = Queuedb(config.DB_FILE_NAME)
-    if not queue.check_existence(['WEx90', 'Blue']):
-        queue.push(['WEx90', 'Blue'])
-
-    first_row = queue.front()
-    print(first_row)
-
-    queue.close_db_connection()

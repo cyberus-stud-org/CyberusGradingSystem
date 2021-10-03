@@ -2,3 +2,5 @@
 /.idea
 /__pycache__
 chromedriver.exe
+geckodriver
+geckodriver.log
