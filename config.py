@@ -8,4 +8,4 @@ USERNAME_COL_NAME = 'username'
 CHALLENGE_COL_NAME = 'challenge_name'
 
 DRIVER_STATUS_FILE = 'driver-status'
-THM_GRADING_SYSTEM_RUN_EVERY = 10 # seconds
+THM_GRADING_SYSTEM_TIMER = 20 # seconds

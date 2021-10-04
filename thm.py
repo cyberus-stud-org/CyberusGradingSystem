@@ -63,6 +63,8 @@ class THMProfile:
                 self.show_more_rooms()
                 number_of_current_shown_rooms = self.get_number_of_current_shown_rooms()
 
+        sleep(1)
+
     def get_number_of_completed_rooms(self):
         """:returns the number of completed rooms"""
         return int(BeautifulSoup(self.driver.page_source, features='html.parser').find('div', {'id': 'rooms-completed'}).text)

@@ -1,12 +1,26 @@
-from flask import Flask, request, json
-
+from flask import Flask, request, jsonify
 import requests
 
-import thm
+from THMGradingSystem import THMGradingSystem
 import config
 
-driver = thm.start_driver()
+THMGradingSystem = THMGradingSystem()
 app = Flask(__name__)
+
+
+def response(msg: str, state: int):
+
+    if state == 0:
+        return jsonify({
+            'state': 'failure',
+            'msg': msg
+        })
+
+    elif state == 1:
+        return jsonify({
+            'state': 'success',
+            'msg': msg
+        })
 
 
 @app.route('/')
@@ -32,25 +46,22 @@ def root():
 @app.route('/CheckTHM', methods=['GET', 'POST'])
 def check_thm():
 
-    global driver
-
     try:
         json_data = request.json
         json_data['username']
         json_data['room']
     except Exception:
-        return 'Error: Invalid JSON', 400
+        return response('Invalid JSON', 0), 400
 
     if len(json_data['username']) > 20 or len(json_data['room']) > 30:
-        return 'Error: Invalid Values', 400
+        return response('Invalid Values', 0), 400
 
-    profile = thm.THMProfile(driver, json_data['username'])
-    driver = profile.driver
-
-    if profile.username_exists:
-        return str(profile.check_if_room_completed(json_data['room'])), 200
+    result = THMGradingSystem.queue_entry([json_data['username'], json_data['room']])
+    if result:
+        return response('Added successfully', 1)
     else:
-        return 'Error: Username doesn\'t exist', 400
+        print(THMGradingSystem.check_driver_status())
+        return response('Entry Already exists', 0)
 
 
 @app.route('/CheckCyberTalents', methods=['GET', 'POST'])
@@ -71,6 +82,17 @@ def check_cybertalents():
     if json_data["challenge"] in response.text:
         return 'True'
     return 'False'
+
+
+@app.route('/ResetTHM')
+def reset_thm():
+
+    try:
+        THMGradingSystem.driver.close()
+        THMGradingSystem.change_driver_status('off')
+        return response('Reset is being handled', 1)
+    except Exception:
+        return response('Unknown error occurred while reset', 0)
 
 
 if __name__ == '__main__':
