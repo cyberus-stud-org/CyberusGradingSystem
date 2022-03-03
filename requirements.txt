@@ -21,7 +21,8 @@ scipy==1.7.1
 six==1.16.0
 Wave==0.0.2
 Werkzeug==2.0.1
-requests==2.26.0
 selenium==3.141.0
 soupsieve==2.2.1
 urllib3==1.26.7
+Flask-JWT-Extended==4.3.1
+PyJWT==2.3.0
